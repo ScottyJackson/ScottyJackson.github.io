@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Solving Traveling Salesman with The Elastic Net Algorithm</title>
+    <meta name="description" content="For those of you unfamiliar with the Traveling Salesman Problem, it is a classic problem in computer science in which we would like to find the shortest poss...">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://scottyjackson.github.io/elastic-net-traveling-salesman">
+    <link rel="alternate" type="application/rss+xml" title="Scott Jackson" href="http://scottyjackson.github.io/feed.xml" />
+  </head>
+
+  <body>
+    <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-83202288-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+    <main>
+      <header class="site-header">
+  <div class="container">
+    <h1><a href="/">Scott<span>Jackson</span></a></h1>
+
+    <button type="button" class="sliding-panel-button">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <nav class="navbar sliding-panel-content">
+      <ul>
+        
+          <li><a href="/about" title="About">About</a></li>
+        
+          <li><a href="/blog" title="Blog">Blog</a></li>
+        
+        <li><a href="/feed.xml" target="_blank"><i class="icon icon-feed"></i></a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<div class="sliding-panel-fade-screen"></div>
+
+
+      <div class="container">
+        <script type="text/javascript"
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+<article role="article" class="post">
+
+  <div class="card">
+    <header class="post-header">
+      <h1 class="post-title">Solving Traveling Salesman with The Elastic Net Algorithm</h1>
+      <p class="post-meta">Dec 23, 2016</p>
+    </header>
+
+    <div class="post-content">
+      <p>For those of you unfamiliar with the <a href="https://simple.wikipedia.org/wiki/Travelling_salesman_problem">Traveling Salesman Problem</a>, it is a classic problem in computer science in which we would like to find the shortest possible path among a group of cities. It seems easy enough, however the problem is NP-Hard, and therefore no efficient algorithm exists to solve it. Rather, there are a number of heuristics that have been devised to approximate the solution.</p>
+
+<h3 id="what-is-the-elastic-net-algorithm">What is The Elastic Net Algorithm?</h3>
+<p>The Elastic Net Algorithm is one such heuristic for approximating a solution to TSP. It is not the best algorithm for solving it, but it is interesting in concept, and fun to code and visualize.</p>
+
+<p>The algorithm itself is quite simple. Cities for a given instance of the problem are represented as coordinate pairs (theoretically this could work in higher dimensions as well but I have not tried it myself), and a ring of “neurons” with prespecified radius is placed at the center of the cities. The neurons can be thought to be connected by an elastic, and so at each iteration, this elastic stretches until it envelops the cities, finally giving a possible tour.</p>
+
+<p>The images below show a run of the algorithm over the cities of Djibouti</p>
+
+<p><img src="images/ena/img_iter0.png" alt="alt text" />
+<img src="images/ena/img_iter1.png" alt="alt text" />
+<img src="images/ena/img_iter2.png" alt="alt text" />
+<img src="images/ena/img_iter3.png" alt="alt text" />
+<img src="images/ena/img_iter4.png" alt="alt text" />
+<img src="images/ena/img_iter5.png" alt="alt text" />
+<img src="images/ena/img_iter6.png" alt="alt text" />
+<img src="images/ena/img_iter7.png" alt="alt text" />
+<img src="images/ena/img_iter8.png" alt="alt text" />
+<img src="images/ena/tour.png" alt="alt text" /></p>
+
+<p>The heart of this algorithm is given by the update step</p>
+
+<script type="math/tex; mode=display">\Delta y_j = 
+\alpha\sum_i w_{ij} (x_i - y_j) 
++ \alpha\sum_i s_{ij} (x_i - y_{x_i}) 
++ \beta K (Y_{j+1} + Y_{j-1} - 2Y_j)</script>
+
+<p>where</p>
+
+<script type="math/tex; mode=display">y_j \text{ is the } j^{th} \text{ neuron}</script>
+
+<script type="math/tex; mode=display">x_i \text{ is the } i^{th} \text{ city}</script>
+
+<script type="math/tex; mode=display">y_{x_i} \text{ is the closest neuron to city } x_i</script>
+
+<script type="math/tex; mode=display">w_{ij} = \frac{ \phi (d_{x_i,y_j}, K) } { \sum_k \phi (d_{x_i,y_k}, K) }</script>
+
+<script type="math/tex; mode=display">s_{ij} = \frac{ \phi (d_{y_{x_i},y_j}, K) } { \sum_k \phi (d_{y_{x_i},y_k}, K) }</script>
+
+<script type="math/tex; mode=display">\phi (d,K) = \exp (\frac{-d^2}{2K^2})</script>
+
+<script type="math/tex; mode=display">d \text{ is euclidean distance }</script>
+
+<p>This seems complicated at first, but is in fact quite intuitive. The neurons have three forces acting upon them at each iteration, given by each term in the above equation</p>
+
+<p><strong>1.</strong> Each city <script type="math/tex">x_i</script> exerts a force on neuron <script type="math/tex">y_j</script> with a weight <script type="math/tex">w_{ij}</script>. The closer a city is, the more weight it has, and so it attracts a neuron more. The total contribution of this force across all cities is controlled by the parameter <script type="math/tex">\alpha</script>. This force acts to pull the neurons out and stretch the elastic about the cities.</p>
+
+<p><strong>2.</strong> The second term serves to keep the neurons evenly distributed about the elastic, and hence favor shorter paths. The further the distance between a pair of neurons <script type="math/tex">i,j</script>, the stronger the weight <script type="math/tex">s_{i,j}</script>.</p>
+
+<p><strong>3.</strong> Finally, each neuron is acted upon by its neighbors; hence the third term can be thought of as a tension on the elastic which serves to keep neighboring neurons together. It is controlled by the parameter <script type="math/tex">\beta</script>, but the scale parameter <script type="math/tex">K</script> also influences it.</p>
+
+<p><script type="math/tex">K</script> is different from the other parameters however; it is calculated each iteration as the average squared distance between each city and its closest point on the tour. Basically, it serves to make it so as neurons approach a city, they are more affected more by it than other cities, hence “scaling” the algorithm.</p>
+
+<h3 id="code">Code</h3>
+<p>I use <code class="highlighter-rouge">python 3</code> with <code class="highlighter-rouge">numpy</code> for my implementation. I will present the <code class="highlighter-rouge">ElasticNet</code> class and explain the code in it along the way. The full implementaion can be found <a href="https://github.com/rellermeyer/99tsp/tree/master/python/neural">here</a>.</p>
+
+<h4 id="class-definition-and-init">Class Definition and init</h4>
+<p>Here I simply import the necessary libraries and give a class definition along with its constructor, containing the hyperparameters needed for the algorihm</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial.distance</span> <span class="kn">import</span> <span class="n">cdist</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+
+<span class="k">class</span> <span class="nc">ElasticNet</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iters</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">neuron_factor</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> 
+	             <span class="n">alpha</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_iters</span> <span class="o">=</span> <span class="n">n_iters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neuron_factor</span> <span class="o">=</span> <span class="n">neuron_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="n">radius</span></code></pre></figure>
+
+<h3 id="fitting-the-model">Fitting the model</h3>
+<p>Fits an instance of TSP with ENA. takes a numpy array <code class="highlighter-rouge">cities</code> <script type="math/tex">\in \mathbb{R}^{n\times 2}</script>, initializes the neurons, and proceeds to update them for <code class="highlighter-rouge">n_iters</code> iterations</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">	<span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cities</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">cities</span> <span class="o">=</span> <span class="n">cities</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">neurons</span> <span class="o">=</span> <span class="n">init_neurons</span><span class="p">(</span><span class="n">cities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">neuron_factor</span><span class="p">)</span>
+
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_iters</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="nb">iter</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">update_weights</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">update_neurons</span><span class="p">()</span></code></pre></figure>
+
+<h3 id="neuron-initialization">Neuron Initialization</h3>
+<p>This method evenly spaces <code class="highlighter-rouge">size</code> neurons in a ring about the center of the cities.<br />
+<code class="highlighter-rouge">linspace</code> evenly spaces <code class="highlighter-rouge">size</code> neurons from <script type="math/tex">0</script> to <script type="math/tex">2\pi</script> (circumference of a circle in radians), the <code class="highlighter-rouge">False</code> argument indicated that we do not it to include <script type="math/tex">2\pi</script><br />
+Next, I transform the linspace into x and y coordinates by taking the <code class="highlighter-rouge">cos</code> and <code class="highlighter-rouge">sin</code> of the linspace, scale the coordinates such that the ring will be of the specified radius, and translate it such that it lies in the center of the cities.<br />
+Finally I return the transpose such that it will be a matrix with shape [size, 2]</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="k">def</span> <span class="nf">init_neurons</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cities</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">neurons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+        <span class="n">neuron_ring</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">neurons</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">neurons</span><span class="p">)])</span>
+        <span class="n">neuron_ring</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">radius</span>
+        <span class="n">neuron_ring</span> <span class="o">+=</span> <span class="n">center</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">neuron_ring</span><span class="o">.</span><span class="n">T</span></code></pre></figure>
+
+<h3 id="weight-and-scale-updates">Weight and Scale Updates</h3>
+<p>This method updates the weights <script type="math/tex">W</script> and <script type="math/tex">S</script>. I first find the delta between each <script type="math/tex">(x_i, y_j)</script> pair, which is used later.
+<code class="highlighter-rouge">cdist</code> returns the the euclidean distance for each pair (in testing cdist was much faster than computing this myself). The following lines do the same thing, but for the nearest neuron to each city. <script type="math/tex">K</script> is updated as specified above, and we set a lower bound for it, as the solution diverges if K becomes too small. Finally, I compute and normalize the weight matrices.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">	<span class="k">def</span> <span class="nf">update_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+	        <span class="k">def</span> <span class="nf">phi</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">K</span><span class="p">):</span>
+	            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">K</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+	        <span class="bp">self</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cities</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_neurons</span> 
+	        <span class="bp">self</span><span class="o">.</span><span class="n">dists</span> <span class="o">=</span> <span class="n">cdist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cities</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_neurons</span><span class="p">)</span>
+	        <span class="n">near_neurons</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neurons</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dists</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+	        <span class="bp">self</span><span class="o">.</span><span class="n">near_delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cities</span> <span class="o">-</span> <span class="n">near_neurons</span>
+	        <span class="bp">self</span><span class="o">.</span><span class="n">near_d2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">near_delta</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+	        <span class="bp">self</span><span class="o">.</span><span class="n">near_dists</span> <span class="o">=</span> <span class="n">cdist</span><span class="p">(</span><span class="n">near_neurons</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">neurons</span><span class="p">)</span>
+
+	        <span class="bp">self</span><span class="o">.</span><span class="n">update_K</span><span class="p">()</span>
+
+	        <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="n">phi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">near_dists</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+	        <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+	        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">phi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dists</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+	        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">update_K</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	        <span class="bp">self</span><span class="o">.</span><span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_near_d2</span><span class="p">)</span>
+	        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span> <span class="o">&lt;</span> <span class="mf">0.01</span><span class="p">:</span>
+	            <span class="bp">self</span><span class="o">.</span><span class="n">K</span> <span class="o">=</span> <span class="mf">0.01</span></code></pre></figure>
+
+<h3 id="neuron-update">Neuron Update</h3>
+<p><code class="highlighter-rouge">update_neurons()</code> is pretty self explanatory; it is simply the update step we defined earlier. <code class="highlighter-rouge">einsum</code> in <code class="highlighter-rouge">city_force()</code> is a cool function (albeit somewhat difficult to understand) - basically it gives us a very efficient way to perform opertaion on multi-dimensional arrays; in this case multiplying every slice of <code class="highlighter-rouge">W</code> and <code class="highlighter-rouge">delta</code>. In other words, we tell <code class="highlighter-rouge">einsum</code> to multiply both axes of <code class="highlighter-rouge">W</code> by the first two of <code class="highlighter-rouge">delta</code>, then sum along the first axis, i. In <code class="highlighter-rouge">neuron_force()</code> the first and last neurons are added to the beginning and end so we can calculate the term in a single comprehension.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="k">def</span> <span class="nf">update_neurons</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fw</span><span class="p">,</span><span class="n">fs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">city_force</span><span class="p">()</span>
+        <span class="n">term1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">fw</span>
+        <span class="n">term2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">fs</span>
+        <span class="n">term3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">neuron_force</span><span class="p">()</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">neurons</span> <span class="o">+=</span> <span class="p">(</span><span class="n">term1</span> <span class="o">+</span> <span class="n">term2</span> <span class="o">+</span> <span class="n">term3</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">city_force</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s">'ij,ijk-&gt;jk'</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delta</span><span class="p">),</span> 
+        	   <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">near_delta</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">neuron_force</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">nshape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">temp_neurons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">neurons</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> 
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">neurons</span><span class="p">,</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">neurons</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">temp_neurons</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">temp_neurons</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">temp_neurons</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> 
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">temp_neurons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">])</span></code></pre></figure>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>That is all there is to it. The code above doesn’t include the driver module, visualization, or how to construct the solution. If you are interested, check out the full implementation! The repo also contains a bevy of other solutions in a wide variety of languages.</p>
+
+
+    </div>
+
+    
+<hr>
+
+<aside id="comments" class="disqus">
+  <div class="container">
+    <h3><i class="icon icon-comments-o"></i> Comments</h3>
+    <div id="disqus_thread"></div>
+    <script>
+      var disqus_config = function() {
+        this.page.url = 'http://scottyjackson.github.io';
+        this.page.identifier = '/elastic-net-traveling-salesman';
+      };
+      (function() {
+        var d = document,
+        s = d.createElement('script');
+        s.src = '//scottyjackson-github-io.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+      })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+  </div>
+</aside>
+
+  </div>
+
+</article>
+
+      </div>
+
+      <footer class="site-footer">
+  <div class="container">
+    <ul class="social">
+  <li><a href="http://github.com/scottyjackson" target="_blank"><i class="icon icon-github"></i></a></li>
+  <li><a href="http://twitter.com/scottjackson97" target="_blank"><i class="icon icon-twitter"></i></a></li>
+  <li><a href="http://linkedin.com/in/scott-jackson" target="_blank"><i class="icon icon-linkedin"></i></a></li>
+</ul>
+    <p class="txt-medium-gray">
+      <small>&copy;2017 All rights reserved. Made with <a href="http://jekyllrb.com/" target="_blank">Jekyll</a> and ♥</small>
+    </p>
+  </div>
+</footer>
+
+
+      <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+      <script>
+      $(document).ready(function() {
+        $('.sliding-panel-button,.sliding-panel-fade-screen,.sliding-panel-close').on('click touchstart',function (e) {
+          $('.sliding-panel-content,.sliding-panel-fade-screen').toggleClass('is-visible');
+          e.preventDefault();
+        });
+      });
+      </script>
+    </main>
+  </body>
+</html>
